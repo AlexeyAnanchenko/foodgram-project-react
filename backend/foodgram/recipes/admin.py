@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import User, Subscribe, Tag, Ingredient, Recipe, IngredientRecipe
+from recipes import models
 
 
 class UserAdmin(admin.ModelAdmin):
@@ -23,22 +23,53 @@ class IngredientAdmin(admin.ModelAdmin):
 
 
 class IngredientRecipeTabular(admin.TabularInline):
-    model = IngredientRecipe
+    model = models.IngredientRecipe
+
+
+class TagsTabular(admin.TabularInline):
+    model = models.Tag.recipes.through
 
 
 class RecipeAdmin(admin.ModelAdmin):
+    fields = (
+        'name', 'image', 'text',
+        'author', 'cooking_time'
+    )
     list_display = (
         'pk', 'name', 'image', 'text',
-        'author', 'tags', 'cooking_time'
+        'author', 'Tags', 'cooking_time',
+        'Ingredients'
     )
-    inlines = [IngredientRecipeTabular, ]
+    inlines = [IngredientRecipeTabular, TagsTabular, ]
 
-    def tags(self, obj):
-        return "\n".join([r.tags for r in obj.tags.all()])
+    def Tags(self, obj):
+        return "\n; ".join([r.slug for r in obj.tags.all()])
+
+    def Ingredients(self, obj):
+        return "\n; ".join([r.name for r in obj.ingredients.all()])
 
 
-admin.site.register(User, UserAdmin)
-admin.site.register(Subscribe, SubscribeAdmin)
-admin.site.register(Tag, TagAdmin)
-admin.site.register(Ingredient, IngredientAdmin)
-admin.site.register(Recipe, RecipeAdmin)
+class IngrediantRecipeAdmin(admin.ModelAdmin):
+    pass
+
+
+class RecipeTabular(admin.TabularInline):
+    model = models.Recipe.shopping_cart.through
+
+
+class ShoppingCartAdmin(admin.ModelAdmin):
+    fields = ('user',)
+    list_display = ('pk', 'user', 'Recipe')
+    inlines = [RecipeTabular]
+
+    def Recipe(self, obj):
+        return "\n; ".join([f'{r.id}' for r in obj.recipe.all()])
+
+
+admin.site.register(models.User, UserAdmin)
+admin.site.register(models.Subscribe, SubscribeAdmin)
+admin.site.register(models.Tag, TagAdmin)
+admin.site.register(models.Ingredient, IngredientAdmin)
+admin.site.register(models.Recipe, RecipeAdmin)
+admin.site.register(models.ShoppingCart, ShoppingCartAdmin)
+admin.site.register(models.IngredientRecipe, IngrediantRecipeAdmin)

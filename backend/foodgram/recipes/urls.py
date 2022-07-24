@@ -14,9 +14,8 @@ router.register('users', CustomUserViewSet, basename='user')
 
 urlpatterns = [
     path('', include(router.urls)),
-    # path('recipes/download_shopping_cart/', ),
-    # path('recipes/<int:recipe_id>/shopping_cart/', ),
-    # path('recipes/<int:recipe_id>/favorite/', ),
+    #path('recipes/<int:recipe_id>/shopping_cart/', ShoppingCartViewSet),
+    #path('recipes/<int:recipe_id>/favorite/', ),
     # path('users/subscriptions/',),
     # path('users/<int:user_id>/subscribe/',),
     path('auth/', include('djoser.urls.authtoken')),

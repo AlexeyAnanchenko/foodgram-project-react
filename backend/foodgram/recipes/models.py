@@ -110,7 +110,7 @@ class Ingredient(models.Model):
 class Recipe(models.Model):
     """Рецепт"""
     name = models.CharField(max_length=200, verbose_name='Название')
-    image = models.FileField(
+    image = models.ImageField(
         upload_to='recipes/', verbose_name='Картинка'
     )
     text = models.TextField(verbose_name='Описание')
@@ -122,7 +122,7 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(
         Tag,
-        related_name='recipe',
+        related_name='recipes',
         verbose_name='Теги'
     )
     ingredients = models.ManyToManyField(
@@ -159,3 +159,24 @@ class IngredientRecipe(models.Model):
 
     class Meta:
         default_related_name = 'ingredient_recipe'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['ingredient', 'recipe'],
+                name='unique_ingredients',
+            ),
+        ]
+
+
+class ShoppingCart(models.Model):
+    """Корзина покупателя"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ManyToManyField(
+        Recipe,
+        related_name='shopping_cart',
+        verbose_name='Рецепты'
+    )

@@ -1,10 +1,13 @@
+from django.http import HttpResponse
 from djoser.views import viewsets, UserViewSet
 from rest_framework.decorators import action
 from rest_framework import permissions
 from django.contrib.auth import get_user_model
 
 from .models import Tag, Ingredient, Recipe
-from .serializers import Read_RecipeSerializerClass, TagSerializerClass, RecipeSerializerClass
+from .serializers import IngredientSerializerClass, TagSerializerClass
+from .serializers import RecipeSerializerClass
+# from .mixins import CreateDeleteViewSet
 
 
 User = get_user_model()
@@ -34,7 +37,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
-    serializer_class = TagSerializerClass
+    serializer_class = IngredientSerializerClass
     pagination_class = None
 
 
@@ -42,10 +45,45 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializerClass
 
-    def get_serializer_class(self):
-        if self.request.method == 'GET':
-            return Read_RecipeSerializerClass
-        return RecipeSerializerClass
-
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    @action(["get"], detail=False)
+    def download_shopping_cart(self, request):
+        recipes = self.request.user.shopping_cart.recipe.all()
+        result = {}
+        for recipe in recipes:
+            for i in recipe.ingredient_recipe.all():
+                if i.ingredient.name in result.keys():
+                    result[
+                        f'{i.ingredient.name} '
+                        f'({i.ingredient.measurement_unit})'
+                    ] = result[
+                        f'{i.ingredient.name} '
+                        f'({i.ingredient.measurement_unit})'
+                    ] + i.amount
+                else:
+                    result[
+                        f'{i.ingredient.name} '
+                        f'({i.ingredient.measurement_unit})'
+                    ] = i.amount
+        content = 'НАЗВАНИЕ ПРОДУКТА: КОЛИЧЕСТВО\n'
+        for key, value in result.items():
+            content = content + f'{key}: - {value}\n'
+        response = HttpResponse(content, content_type='text/plain')
+        response['Content-Disposition'] = (
+            'attachment; '
+            'filename="shopping_list.txt"'
+        )
+        return response
+
+
+"""
+class ShoppingCartViewSet(CreateDeleteViewSet):
+    serializer_class = 
+
+    def get_queryset(self):
+        return Recipe.objects.get(pk=self.kwargs.get('recipe_id'))
+
+    def perform_create(self, serializer):
+"""
