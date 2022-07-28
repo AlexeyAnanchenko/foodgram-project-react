@@ -1,22 +1,14 @@
-"""
 from django.urls import include, path
-from rest_framework import routers
+from rest_framework.routers import DefaultRouter
 
-from .views import UserViewSet
+from .views import CustomUserViewSet
 
 app_name = 'users'
 
-router = routers.SimpleRouter()
-router.register('users', UserViewSet, basename='users')
+router = DefaultRouter()
+router.register('', CustomUserViewSet, basename='user')
 
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('users/me/', ),
-    path('users/set_password/', ),
-    path('users/subscriptions/',),
-    path('users/<int:user_id>/subscribe/',),
-    path('auth/token/login/', ),
-    path('auth/token/logout/', ),
 ]
-"""

@@ -1,71 +1,9 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator, MinValueValidator
 
 
-class User(AbstractUser):
-    """Кастомная модель User"""
-    username_validator = UnicodeUsernameValidator()
-
-    email = models.EmailField(
-        max_length=254,
-        unique=True,
-        verbose_name='Адрес электронной почты'
-    )
-    username = models.CharField(
-        max_length=150,
-        unique=True,
-        verbose_name='Уникальный юзернейм',
-        help_text=(
-            "Обязательное поле. Не более 150 символов."
-            "Только буквы, цифры и @/./+/-/_ ."
-        ),
-        validators=[username_validator],
-    )
-    first_name = models.CharField(max_length=150, verbose_name='Имя')
-    last_name = models.CharField(max_length=150, verbose_name='Фамилия')
-    password = models.CharField(max_length=150, verbose_name='Пароль')
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'password']
-
-    class Meta:
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
-
-    def __str__(self):
-        return self.username
-
-
-class Subscribe(models.Model):
-    """Подписки пользователей"""
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='subscribers',
-        verbose_name='Пользователь'
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='subscribed',
-        verbose_name='Автор'
-    )
-
-    class Meta:
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='unique_subscribe',
-            ),
-            models.CheckConstraint(
-                check=~models.Q(user=models.F('author')),
-                name='user != author',
-            ),
-        ]
+User = get_user_model()
 
 
 class Tag(models.Model):
@@ -90,6 +28,9 @@ class Tag(models.Model):
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
 
+    def __str__(self):
+        return self.name
+
 
 class Ingredient(models.Model):
     """Интгредиенты"""
@@ -105,6 +46,9 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+
+    def __str__(self):
+        return self.name
 
 
 class Recipe(models.Model):
@@ -133,6 +77,7 @@ class Recipe(models.Model):
         verbose_name='Время приготовления',
         validators=[MinValueValidator(1)]
     )
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -180,3 +125,26 @@ class ShoppingCart(models.Model):
         related_name='shopping_cart',
         verbose_name='Рецепты'
     )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+
+
+class Favorite(models.Model):
+    """Избранное"""
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorite',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ManyToManyField(
+        Recipe,
+        related_name='favorites',
+        verbose_name='Рецепты'
+    )
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные'

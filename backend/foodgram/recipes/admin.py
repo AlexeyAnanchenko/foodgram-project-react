@@ -3,23 +3,13 @@ from django.contrib import admin
 from recipes import models
 
 
-class UserAdmin(admin.ModelAdmin):
-    list_display = (
-        'pk', 'email', 'username',
-        'first_name', 'last_name', 'password',
-    )
-
-
-class SubscribeAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'user', 'author')
-
-
 class TagAdmin(admin.ModelAdmin):
     list_display = ('pk', 'name', 'color', 'slug')
 
 
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('pk', 'name', 'measurement_unit')
+    list_filter = ('name',)
 
 
 class IngredientRecipeTabular(admin.TabularInline):
@@ -33,14 +23,17 @@ class TagsTabular(admin.TabularInline):
 class RecipeAdmin(admin.ModelAdmin):
     fields = (
         'name', 'image', 'text',
-        'author', 'cooking_time'
+        'author', 'cooking_time',
+        'added_to_favorite'
     )
     list_display = (
         'pk', 'name', 'image', 'text',
         'author', 'Tags', 'cooking_time',
-        'Ingredients'
+        'pub_date', 'Ingredients',
     )
     inlines = [IngredientRecipeTabular, TagsTabular, ]
+    list_filter = ('author', 'name', 'tags')
+    readonly_fields = ('added_to_favorite', )
 
     def Tags(self, obj):
         return "\n; ".join([r.slug for r in obj.tags.all()])
@@ -48,28 +41,38 @@ class RecipeAdmin(admin.ModelAdmin):
     def Ingredients(self, obj):
         return "\n; ".join([r.name for r in obj.ingredients.all()])
 
+    def added_to_favorite(self, obj):
+        return obj.favorites.all().count()
 
-class IngrediantRecipeAdmin(admin.ModelAdmin):
-    pass
 
-
-class RecipeTabular(admin.TabularInline):
+class RecipeShoppingCartTabular(admin.TabularInline):
     model = models.Recipe.shopping_cart.through
 
 
 class ShoppingCartAdmin(admin.ModelAdmin):
     fields = ('user',)
     list_display = ('pk', 'user', 'Recipe')
-    inlines = [RecipeTabular]
+    inlines = [RecipeShoppingCartTabular]
 
     def Recipe(self, obj):
         return "\n; ".join([f'{r.id}' for r in obj.recipe.all()])
 
 
-admin.site.register(models.User, UserAdmin)
-admin.site.register(models.Subscribe, SubscribeAdmin)
+class RecipeFavoriteTabular(admin.TabularInline):
+    model = models.Recipe.favorites.through
+
+
+class FavoriteAdmin(admin.ModelAdmin):
+    fields = ('user',)
+    list_display = ('pk', 'user', 'Recipe')
+    inlines = [RecipeFavoriteTabular]
+
+    def Recipe(self, obj):
+        return "\n; ".join([f'{r.id}' for r in obj.recipe.all()])
+
+
 admin.site.register(models.Tag, TagAdmin)
 admin.site.register(models.Ingredient, IngredientAdmin)
 admin.site.register(models.Recipe, RecipeAdmin)
 admin.site.register(models.ShoppingCart, ShoppingCartAdmin)
-admin.site.register(models.IngredientRecipe, IngrediantRecipeAdmin)
+admin.site.register(models.Favorite, FavoriteAdmin)
