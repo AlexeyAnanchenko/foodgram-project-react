@@ -1,9 +1,9 @@
 import csv
 import os
-import psycopg2
-from dotenv import load_dotenv
-from django.core.management.base import BaseCommand
 
+import psycopg2
+from django.core.management.base import BaseCommand
+from dotenv import load_dotenv
 
 load_dotenv()
 

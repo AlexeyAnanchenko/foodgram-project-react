@@ -1,12 +1,12 @@
 from datetime import datetime
-from rest_framework import serializers
+
 from django.contrib.auth import get_user_model
 from django.core import exceptions
-
+from rest_framework import serializers
 from users.serializers import CustomUserSerializer
-from .models import Ingredient, IngredientRecipe, Recipe, ShoppingCart
-from .models import Tag, Favorite
 
+from .models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                     ShoppingCart, Tag)
 
 User = get_user_model()
 
@@ -60,6 +60,7 @@ class Base64Decoder(serializers.ImageField):
 
     def to_internal_value(self, data):
         import base64
+
         from django.core.files.base import ContentFile
         format, imgstr = data.split(';base64,')
         data = ContentFile(

@@ -1,20 +1,17 @@
-from django.http import HttpResponse
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework import permissions, status
 from django.contrib.auth import get_user_model
-from rest_framework import serializers, viewsets
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
-
+from rest_framework import permissions, serializers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from users.serializers import RecipeActionSerializerClass
-from .models import ShoppingCart, Tag, Ingredient, Recipe, Favorite
-from .serializers import FavoriteSerializer, IngredientSerializerClass
-from .serializers import RecipeSerializerClass
-from .serializers import ShoppingCartSerializer, TagSerializerClass
-from .serializers import Read_RecipeSerializerClass
-from .filters import RecipeFilter, IngredientFilter
-from .permissions import IsAuthorAdminOrReadOnly
 
+from .filters import IngredientFilter, RecipeFilter
+from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from .permissions import IsAuthorAdminOrReadOnly
+from .serializers import (FavoriteSerializer, IngredientSerializerClass,
+                          Read_RecipeSerializerClass, RecipeSerializerClass,
+                          ShoppingCartSerializer, TagSerializerClass)
 
 User = get_user_model()
 

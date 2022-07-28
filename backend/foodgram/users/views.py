@@ -1,13 +1,11 @@
-from djoser.views import UserViewSet
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework import permissions, status
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
+from djoser.views import UserViewSet
+from rest_framework import permissions, serializers, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from .models import Subscribe
-from .serializers import SubscribeUserSerializer, SubscribeSerializer
-
+from .serializers import SubscribeSerializer, SubscribeUserSerializer
 
 User = get_user_model()
 
