@@ -220,7 +220,6 @@ class RecipeSerializerClass(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        print(data)
         data = dict(data)
         tags = data['tags']
         ingredients = [dict(obj)['ingredient'] for obj in data['ingredients']]

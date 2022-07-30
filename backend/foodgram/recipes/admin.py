@@ -30,12 +30,13 @@ class MyForm(forms.ModelForm):
     def clean(self):
         data = dict(self.data)
         empty_ingredients = 0
-        for num in range(3):
+        total_forms = int(data['ingredient_recipe-TOTAL_FORMS'][0])
+        for num in range(total_forms):
             if (data[f'ingredient_recipe-{num}-ingredient'][0] == '' or
                 (data[f'ingredient_recipe-{num}-ingredient'][0] != '' and
                     data.get(f'ingredient_recipe-{num}-DELETE') == ['on'])):
                 empty_ingredients += 1
-        if empty_ingredients == 3:
+        if empty_ingredients == total_forms:
             raise forms.ValidationError(
                 "Поле 'Ингредиенты' обязательно для заполнения!")
         return super().clean()
