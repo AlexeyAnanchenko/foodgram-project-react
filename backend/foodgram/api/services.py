@@ -11,18 +11,11 @@ def make_shopping_list(user):
     ).select_related('ingredient')
     result = {}
     for obj in ingredient_recipe:
-        if (f'{obj.ingredient.name} '
-                f'({obj.ingredient.measurement_unit})') in result.keys():
-            result[
-                f'{obj.ingredient.name} ({obj.ingredient.measurement_unit})'
-            ] = result[
-                f'{obj.ingredient.name} ({obj.ingredient.measurement_unit})'
-            ] + obj.amount
-        else:
-            result[
-                f'{obj.ingredient.name} ({obj.ingredient.measurement_unit})'
-            ] = obj.amount
+        try:
+            result[obj.ingredient] += obj.amount
+        except KeyError:
+            result[obj.ingredient] = obj.amount
     content = 'НАЗВАНИЕ ПРОДУКТА (ед. изм.) - КОЛИЧЕСТВО\n'
     for key, value in result.items():
-        content = content + f'{key} - {value}\n'
+        content += f'{key.name} ({key.measurement_unit}) - {value}\n'
     return content
