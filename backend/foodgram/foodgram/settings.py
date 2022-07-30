@@ -6,7 +6,7 @@ load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = '&p#k_h1bf0qfin8z2di95%_%!d4h4#4)(^di#2_bey!kcbf$7#'
+SECRET_KEY = os.getenv('SECRET_KEY', default='test')
 
 DEBUG = True
 
@@ -15,6 +15,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'web']
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 INSTALLED_APPS = [
+    'api.apps.ApiConfig',
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig',
     'django.contrib.admin',
@@ -123,8 +124,8 @@ AUTH_USER_MODEL = 'users.User'
 
 DJOSER = {
     'SERIALIZERS': {
-        "current_user": "recipes.serializers.CustomUserSerializer",
-        "user": "recipes.serializers.CustomUserSerializer",
+        "current_user": "api.serializers.CustomUserSerializer",
+        "user": "api.serializers.CustomUserSerializer",
     },
     "PERMISSIONS": {
         "user_list": ["rest_framework.permissions.AllowAny"],

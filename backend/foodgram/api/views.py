@@ -1,19 +1,76 @@
 from django.contrib.auth import get_user_model
+from djoser.views import UserViewSet
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from users.serializers import RecipeActionSerializerClass
 
+from users.models import Subscribe
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .filters import IngredientFilter, RecipeFilter
-from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (FavoriteSerializer, IngredientSerializerClass,
                           Read_RecipeSerializerClass, RecipeSerializerClass,
-                          ShoppingCartSerializer, TagSerializerClass)
+                          ShoppingCartSerializer, TagSerializerClass,
+                          SubscribeSerializer, SubscribeUserSerializer,
+                          RecipeActionSerializerClass)
+from .services import make_shopping_list
+
 
 User = get_user_model()
+
+
+class CustomUserViewSet(UserViewSet):
+
+    def get_queryset(self):
+        return User.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'subscriptions' or self.action == 'subscribe':
+            return SubscribeUserSerializer
+        return super().get_serializer_class()
+
+    def get_permissions(self):
+        if self.action == "retrieve":
+            self.permission_classes = [permissions.AllowAny, ]
+        if self.action == 'subscribe' or self.action == 'subscription':
+            self.permission_classes = [permissions.IsAuthenticated, ]
+        return super().get_permissions()
+
+    @action(["get"], detail=False)
+    def me(self, request, *args, **kwargs):
+        self.get_object = self.get_instance
+        return self.retrieve(request, *args, **kwargs)
+
+    @action(["get"], detail=False)
+    def subscriptions(self, request):
+        subscribed = User.objects.filter(
+            id__in=request.user.subscribed.values_list('author', flat=True)
+        )
+        page = self.paginate_queryset(subscribed)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(subscribed, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(["post", "delete"], detail=True)
+    def subscribe(self, request, id=None):
+        data = {'author': self.get_object().id, 'user': request.user.id}
+        serializer = SubscribeSerializer(data=data)
+        if request.method == "DELETE":
+            if serializer.is_valid():
+                raise serializers.ValidationError(
+                    {'errors': 'Вы не подписаны на этого автора!'})
+            data = {'author': self.get_object(), 'user': request.user}
+            Subscribe.objects.get(**data).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        data = {'author': self.get_object().id, 'user': request.user.id}
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        resp_serializer = self.get_serializer(self.get_object())
+        return Response(resp_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -85,27 +142,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(["get"], detail=False)
     def download_shopping_cart(self, request):
-        recipes = self.request.user.shopping_cart.recipe.all()
-        result = {}
-        for recipe in recipes:
-            for i in recipe.ingredient_recipe.all():
-                if (f'{i.ingredient.name} '
-                        f'({i.ingredient.measurement_unit})') in result.keys():
-                    result[
-                        f'{i.ingredient.name} '
-                        f'({i.ingredient.measurement_unit})'
-                    ] = result[
-                        f'{i.ingredient.name} '
-                        f'({i.ingredient.measurement_unit})'
-                    ] + i.amount
-                else:
-                    result[
-                        f'{i.ingredient.name} '
-                        f'({i.ingredient.measurement_unit})'
-                    ] = i.amount
-        content = 'НАЗВАНИЕ ПРОДУКТА (ед. изм.) - КОЛИЧЕСТВО\n'
-        for key, value in result.items():
-            content = content + f'{key} - {value}\n'
+        content = make_shopping_list(request.user)
         response = HttpResponse(content, content_type='text/plain')
         response['Content-Disposition'] = (
             'attachment; '

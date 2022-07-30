@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 
 from recipes import models
@@ -9,7 +10,7 @@ class TagAdmin(admin.ModelAdmin):
 
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('pk', 'name', 'measurement_unit')
-    list_filter = ('name',)
+    search_fields = ('name',)
 
 
 class IngredientRecipeTabular(admin.TabularInline):
@@ -20,7 +21,28 @@ class TagsTabular(admin.TabularInline):
     model = models.Tag.recipes.through
 
 
+class MyForm(forms.ModelForm):
+
+    class Meta:
+        model = models.Recipe
+        fields = '__all__'
+
+    def clean(self):
+        data = dict(self.data)
+        empty_ingredients = 0
+        for num in range(3):
+            if (data[f'ingredient_recipe-{num}-ingredient'][0] == '' or
+                (data[f'ingredient_recipe-{num}-ingredient'][0] != '' and
+                    data.get(f'ingredient_recipe-{num}-DELETE') == ['on'])):
+                empty_ingredients += 1
+        if empty_ingredients == 3:
+            raise forms.ValidationError(
+                "Поле 'Ингредиенты' обязательно для заполнения!")
+        return super().clean()
+
+
 class RecipeAdmin(admin.ModelAdmin):
+    form = MyForm
     fields = (
         'name', 'image', 'text',
         'author', 'cooking_time',
@@ -32,8 +54,8 @@ class RecipeAdmin(admin.ModelAdmin):
         'pub_date', 'Ingredients',
     )
     inlines = [IngredientRecipeTabular, TagsTabular, ]
-    list_filter = ('author', 'name', 'tags')
     readonly_fields = ('added_to_favorite', )
+    search_fields = ('author', 'name', 'tags')
 
     def Tags(self, obj):
         return "\n; ".join([r.slug for r in obj.tags.all()])
@@ -43,6 +65,10 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def added_to_favorite(self, obj):
         return obj.favorites.all().count()
+
+
+class IngredientRecipeAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'ingredient', 'recipe', 'amount')
 
 
 class RecipeShoppingCartTabular(admin.TabularInline):
@@ -76,3 +102,4 @@ admin.site.register(models.Ingredient, IngredientAdmin)
 admin.site.register(models.Recipe, RecipeAdmin)
 admin.site.register(models.ShoppingCart, ShoppingCartAdmin)
 admin.site.register(models.Favorite, FavoriteAdmin)
+admin.site.register(models.IngredientRecipe, IngredientRecipeAdmin)

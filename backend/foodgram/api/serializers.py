@@ -2,13 +2,79 @@ from datetime import datetime
 
 from django.contrib.auth import get_user_model
 from django.core import exceptions
+from djoser.serializers import UserSerializer
 from rest_framework import serializers
-from users.serializers import CustomUserSerializer
 
-from .models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                     ShoppingCart, Tag)
+from users.models import Subscribe
+from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                            ShoppingCart, Tag)
 
 User = get_user_model()
+
+
+class CustomUserSerializer(UserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed'
+        )
+
+    def get_is_subscribed(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return user.subscribed.filter(user=user, author=obj).exists()
+        return False
+
+
+class RecipeActionSerializerClass(serializers.ModelSerializer):
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscribeUserSerializer(CustomUserSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = RecipeActionSerializerClass(read_only=True, many=True)
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed', 'recipes', 'recipes_count'
+        )
+        read_only_fields = (
+            'email', 'id', 'username', 'first_name',
+            'last_name', 'is_subscribed', 'recipes_count'
+        )
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.all().count()
+
+
+class SubscribeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Subscribe
+        fields = ['user', 'author']
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Subscribe.objects.all(),
+                fields=('user', 'author'),
+                message='Подписка уже оформлена'
+            )
+        ]
+
+    def validate(self, data):
+        data = dict(data)
+        if data['user'] == data['author']:
+            raise serializers.ValidationError('Невозможно подписаться на себя')
+        return data
 
 
 class TagSerializerClass(serializers.ModelSerializer):
@@ -144,7 +210,7 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
 class RecipeSerializerClass(serializers.ModelSerializer):
     author = CustomUserSerializer(read_only=True)
     image = Base64Decoder()
-    ingredients = IngredientRecipeSerializer(many=True)
+    ingredients = IngredientRecipeSerializer(many=True, )
 
     class Meta:
         model = Recipe
@@ -153,34 +219,41 @@ class RecipeSerializerClass(serializers.ModelSerializer):
             'name', 'image', 'text', 'cooking_time',
         )
 
-    def validate_ingredients(self, value):
-        objects = []
-        for i in value:
-            i = dict(i)
-            if i['ingredient'] in objects:
-                raise serializers.ValidationError(
-                    {'errors': 'Нельзя дублировать ингридиенты!'})
-            objects.append(i['ingredient'])
-        return value
+    def validate(self, data):
+        print(data)
+        data = dict(data)
+        tags = data['tags']
+        ingredients = [dict(obj)['ingredient'] for obj in data['ingredients']]
+        if ingredients == []:
+            raise serializers.ValidationError(
+                'поле ingredients обязательное для заполнения')
 
-    def validate_tags(self, value):
-        objects = []
-        for i in value:
-            if i in objects:
-                raise serializers.ValidationError(
-                    {'errors': 'Нельзя дублировать теги!'})
-            objects.append(i)
-        return value
+        def verify(list_obj, text):
+            objects = []
+            for obj in list_obj:
+                if obj in objects:
+                    raise serializers.ValidationError(
+                        f'Нельзя дублировать {text}!')
+                objects.append(obj)
+
+        verify(ingredients, 'ингредиенты')
+        verify(tags, 'теги')
+        return data
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
-        for i in ingredients:
-            i = dict(i)
-            i['recipe'] = recipe
-            IngredientRecipe.objects.create(**i)
+        ingredients_obj = []
+        for ingredient in ingredients:
+            ingredient = dict(ingredient)
+            ingredients_obj.append(IngredientRecipe(
+                recipe=recipe,
+                ingredient=ingredient['ingredient'],
+                amount=ingredient['amount']
+            ))
+        IngredientRecipe.objects.bulk_create(ingredients_obj)
         return recipe
 
     def update(self, instance, validated_data):
@@ -193,33 +266,24 @@ class RecipeSerializerClass(serializers.ModelSerializer):
             'cooking_time',
             instance.cooking_time
         )
-        current_tags = list(instance.tags.all())
-        if current_tags != tags:
-            for tag in current_tags:
-                if tag not in tags:
-                    instance.tags.through.objects.filter(
-                        recipe=instance,
-                        tag=tag
-                    ).delete()
-            instance.tags.set(tags)
+        current_tags = list(instance.tags.through.objects.all())
         current_ing = list(instance.ingredient_recipe.all())
-        ingredients_set = []
-        for i in ingredients:
-            i = dict(i)
-            try:
-                obj = IngredientRecipe.objects.get(
-                    ingredient=i['ingredient'],
-                    recipe=instance
-                )
-                obj.amount = i['amount']
-                obj.save()
-                ingredients_set.append(obj)
-            except exceptions.ObjectDoesNotExist:
-                i['recipe'] = instance
-                obj = IngredientRecipe.objects.create(**i)
-                ingredients_set.append(obj)
-        for i in current_ing:
-            if i not in ingredients_set:
-                i.delete()
-        instance.save()
+
+        def relation_objs(update_list, current_list, model, key):
+            data = {'recipe': instance}
+            renew_obj = []
+            for obj in update_list:
+                if key == 'ingredient':
+                    obj = dict(obj)
+                    data['amount'] = obj['amount']
+                    obj = obj[key]
+                data[key] = obj
+                result, bool = model.objects.update_or_create(**data)
+                renew_obj.append(result)
+            for obj in current_list:
+                if obj not in renew_obj:
+                    obj.delete()
+
+        relation_objs(ingredients, current_ing, IngredientRecipe, 'ingredient')
+        relation_objs(tags, current_tags, Tag.recipes.through, 'tag')
         return instance

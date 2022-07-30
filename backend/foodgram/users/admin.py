@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from users import models
 
 
@@ -7,7 +8,7 @@ class UserAdmin(admin.ModelAdmin):
         'pk', 'email', 'username',
         'first_name', 'last_name', 'password',
     )
-    list_filter = ('email', 'username')
+    search_fields = ('email', 'username')
 
     def save_model(self, request, obj, form, change):
         if obj.pk:

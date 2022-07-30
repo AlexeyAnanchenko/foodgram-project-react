@@ -90,7 +90,7 @@ class IngredientRecipe(models.Model):
     """Промежотчная модель Ингредиент/Рецепт"""
     ingredient = models.ForeignKey(
         Ingredient, on_delete=models.CASCADE,
-        verbose_name='Ингридиент_ID'
+        verbose_name='Ингредиент_ID'
     )
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE,
