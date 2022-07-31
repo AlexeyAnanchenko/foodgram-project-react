@@ -8,9 +8,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = os.getenv('SECRET_KEY', default='test')
 
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'web']
+ALLOWED_HOSTS = [
+    '127.0.0.1', 'localhost', 'web',
+    '84.252.139.254', 'foodgram.viewdns.net']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
