@@ -11,7 +11,7 @@ from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import IsAuthorAdminOrReadOnly
 from .serializers import (FavoriteSerializer, IngredientSerializerClass,
-                          Read_RecipeSerializerClass, RecipeSerializerClass,
+                          ReadRecipeSerializerClass, RecipeSerializerClass,
                           ShoppingCartSerializer, TagSerializerClass,
                           SubscribeSerializer, SubscribeUserSerializer,
                           RecipeActionSerializerClass)
@@ -105,7 +105,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list' or self.action == 'retrieve':
-            return Read_RecipeSerializerClass
+            return ReadRecipeSerializerClass
         if self.action == 'shopping_cart' or self.action == 'favorite':
             return RecipeActionSerializerClass
         return super().get_serializer_class()

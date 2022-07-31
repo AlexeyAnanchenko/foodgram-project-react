@@ -32,9 +32,10 @@ class MyForm(forms.ModelForm):
         empty_ingredients = 0
         total_forms = int(data['ingredient_recipe-TOTAL_FORMS'][0])
         for num in range(total_forms):
-            if (data[f'ingredient_recipe-{num}-ingredient'][0] == '' or
-                (data[f'ingredient_recipe-{num}-ingredient'][0] != '' and
-                    data.get(f'ingredient_recipe-{num}-DELETE') == ['on'])):
+            if (data[f'ingredient_recipe-{num}-ingredient'][0] == ''
+                or (data[f'ingredient_recipe-{num}-ingredient'][0] != ''
+                    and data.get(f'ingredient_recipe-{num}-DELETE') == ['on']
+                    )):
                 empty_ingredients += 1
         if empty_ingredients == total_forms:
             raise forms.ValidationError(
@@ -51,17 +52,17 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     list_display = (
         'pk', 'name', 'image', 'text',
-        'author', 'Tags', 'cooking_time',
-        'pub_date', 'Ingredients',
+        'author', 'tags_list', 'cooking_time',
+        'pub_date', 'ingredients_list',
     )
     inlines = [IngredientRecipeTabular, TagsTabular, ]
     readonly_fields = ('added_to_favorite', )
     search_fields = ('author', 'name', 'tags')
 
-    def Tags(self, obj):
+    def tags_list(self, obj):
         return "\n; ".join([r.slug for r in obj.tags.all()])
 
-    def Ingredients(self, obj):
+    def ingredients_list(self, obj):
         return "\n; ".join([r.name for r in obj.ingredients.all()])
 
     def added_to_favorite(self, obj):
@@ -78,10 +79,10 @@ class RecipeShoppingCartTabular(admin.TabularInline):
 
 class ShoppingCartAdmin(admin.ModelAdmin):
     fields = ('user',)
-    list_display = ('pk', 'user', 'Recipe')
+    list_display = ('pk', 'user', 'recipe_list')
     inlines = [RecipeShoppingCartTabular]
 
-    def Recipe(self, obj):
+    def recipe_list(self, obj):
         return "\n; ".join([f'{r.id}' for r in obj.recipe.all()])
 
 
@@ -91,10 +92,10 @@ class RecipeFavoriteTabular(admin.TabularInline):
 
 class FavoriteAdmin(admin.ModelAdmin):
     fields = ('user',)
-    list_display = ('pk', 'user', 'Recipe')
+    list_display = ('pk', 'user', 'recipe_list')
     inlines = [RecipeFavoriteTabular]
 
-    def Recipe(self, obj):
+    def recipe_list(self, obj):
         return "\n; ".join([f'{r.id}' for r in obj.recipe.all()])
 
 

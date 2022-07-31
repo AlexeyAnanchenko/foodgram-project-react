@@ -5,9 +5,9 @@ from django.core import exceptions
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
 
-from users.models import Subscribe
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                             ShoppingCart, Tag)
+from users.models import Subscribe
 
 User = get_user_model()
 
@@ -129,14 +129,13 @@ class Base64Decoder(serializers.ImageField):
 
         from django.core.files.base import ContentFile
         format, imgstr = data.split(';base64,')
-        data = ContentFile(
+        return ContentFile(
             base64.b64decode(imgstr),
             name="{:%Y-%m-%d %H-%M-%S}.png".format(datetime.now())
         )
-        return data
 
 
-class Read_IngredientRecipeSerializerClass(serializers.ModelSerializer):
+class ReadIngredientRecipeSerializerClass(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
         source='ingredient',
         read_only=True,
@@ -155,9 +154,9 @@ class Read_IngredientRecipeSerializerClass(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
-class Read_RecipeSerializerClass(serializers.ModelSerializer):
+class ReadRecipeSerializerClass(serializers.ModelSerializer):
     author = CustomUserSerializer(read_only=True)
-    ingredients = Read_IngredientRecipeSerializerClass(
+    ingredients = ReadIngredientRecipeSerializerClass(
         many=True,
         source='ingredient_recipe')
     tags = TagSerializerClass(many=True, read_only=True)

@@ -1,4 +1,4 @@
-from recipes.models import ShoppingCart, IngredientRecipe
+from recipes.models import IngredientRecipe, ShoppingCart
 
 
 def make_shopping_list(user):
