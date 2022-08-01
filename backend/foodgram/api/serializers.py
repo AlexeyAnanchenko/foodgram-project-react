@@ -264,7 +264,9 @@ class RecipeSerializerClass(serializers.ModelSerializer):
             'cooking_time',
             instance.cooking_time
         )
-        current_tags = list(instance.tags.through.objects.all())
+        current_tags = list(
+            instance.tags.through.objects.filter(recipe=instance)
+        )
         current_ing = list(instance.ingredient_recipe.all())
 
         def relation_objs(update_list, current_list, model, key):
@@ -273,15 +275,20 @@ class RecipeSerializerClass(serializers.ModelSerializer):
             for obj in update_list:
                 if key == 'ingredient':
                     obj = dict(obj)
-                    data['amount'] = obj['amount']
-                    obj = obj[key]
-                data[key] = obj
-                result, bool = model.objects.update_or_create(**data)
-                renew_obj.append(result)
+                    result, bool = model.objects.update_or_create(
+                        recipe=data['recipe'], ingredient=obj[key],
+                        defaults={'amount': obj['amount']}
+                    )
+                    renew_obj.append(result)
+                else:
+                    data[key] = obj
+                    result, bool = model.objects.update_or_create(**data)
+                    renew_obj.append(result)
             for obj in current_list:
                 if obj not in renew_obj:
                     obj.delete()
 
         relation_objs(ingredients, current_ing, IngredientRecipe, 'ingredient')
         relation_objs(tags, current_tags, Tag.recipes.through, 'tag')
+        instance.save()
         return instance
