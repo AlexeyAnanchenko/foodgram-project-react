@@ -24,7 +24,7 @@ class Command(BaseCommand):
         cur = con.cursor()
 
         with open(
-            "/home/alexey/Dev/foodgram-project-react/data/ingredients.csv"
+            "data/ingredients.csv"
         ) as file:
             file_read = csv.DictReader(file)
             to_db = [(i['name'], i['measurement_unit']) for i in file_read]

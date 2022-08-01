@@ -15,7 +15,6 @@ services:
     env_file:
       - ./.env
   web:
-    context: ../
     image: aalexey/foodgram:latest
     restart: always
     volumes:
@@ -24,7 +23,7 @@ services:
     depends_on:
       - db
     env_file:
-      - ./infra/.env
+      - ./.env
   nginx:
     image: nginx:1.19.3
     ports:
