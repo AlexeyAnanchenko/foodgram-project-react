@@ -128,11 +128,14 @@ class Base64Decoder(serializers.ImageField):
         import base64
 
         from django.core.files.base import ContentFile
-        format, imgstr = data.split(';base64,')
-        return ContentFile(
-            base64.b64decode(imgstr),
-            name="{:%Y-%m-%d %H-%M-%S}.png".format(datetime.now())
-        )
+        try:
+            format, imgstr = data.split(';base64,')
+            return ContentFile(
+                base64.b64decode(imgstr),
+                name="{:%Y-%m-%d %H-%M-%S}.png".format(datetime.now())
+            )
+        except AttributeError:
+            return data
 
 
 class ReadIngredientRecipeSerializerClass(serializers.ModelSerializer):

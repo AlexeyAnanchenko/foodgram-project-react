@@ -122,6 +122,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         kwargs.pop('partial', None)
         instance = self.get_object()
+        if request.data.get('image') is None:
+            request.data['image'] = instance.image
         serializer = self.get_serializer(
             instance,
             data=request.data,

@@ -6,7 +6,6 @@ class RecipeFilter(filters.FilterSet):
     tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
         to_field_name='slug',
-        conjoined=True,
         queryset=Tag.objects.all())
     is_favorited = filters.BooleanFilter(method='get_favorited')
     is_in_shopping_cart = filters.BooleanFilter(method='get_shopping_cart')
