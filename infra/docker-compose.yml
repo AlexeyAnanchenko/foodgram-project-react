@@ -16,8 +16,8 @@ services:
       - ./.env
   web:
     build:
-      context: ../backend
-      dockerfile: foodgram/Dockerfile
+      context: ../.
+      dockerfile: backend/foodgram/Dockerfile
     restart: always
     volumes:
       - static_value:/app/static/
